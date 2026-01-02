@@ -1450,57 +1450,12 @@
         }
         
         function sendData(data) {
-            // Проверяем Telegram
-            if (!tg) {
-                alert('❌ Откройте через Telegram!');
-                return;
-            }
+            // Максимально простой вариант
+            const jsonData = JSON.stringify(data);
             
-            showLoading(true);
-            
-            // Используем короткий формат данных
-            const shortData = {
-                t: data.type,
-                c: data.callsign || '',
-                l: data.lastname || '',
-                p: data.phone || data.carNumber || data.tariff || '',
-                s: data.hasSeat ? '1' : '0'
-            };
-            
-            // Кодируем в base64
-            const jsonData = JSON.stringify(shortData);
-            const encodedData = btoa(unescape(encodeURIComponent(jsonData)));
-            
-            // Формируем deep link
-            const startParam = 'wa_' + encodedData;
-            
-            console.log('📤 Данные:', shortData);
-            console.log('📤 Encoded:', startParam);
-            
-            // Показываем сообщение
-            showToast('✅ Отправка заявки...', 'success');
-            
-            setTimeout(() => {
-                showLoading(false);
-                
-                // Закрываем Web App и открываем бота с параметрами
-                // Используем специальный метод Telegram
-                try {
-                    // Метод 1: openTelegramLink (предпочтительный)
-                    if (tg.openTelegramLink) {
-                        tg.openTelegramLink('https://t.me/allosupport_bot?start=' + startParam);
-                    } else {
-                        // Метод 2: switchInlineQuery как fallback
-                        tg.close();
-                        window.open('https://t.me/allosupport_bot?start=' + startParam, '_blank');
-                    }
-                } catch (e) {
-                    console.error('Ошибка:', e);
-                    // Метод 3: копируем в буфер и просим пользователя
-                    const command = '/start ' + startParam;
-                    alert('Скопируйте и отправьте боту:\n\n' + command);
-                }
-            }, 300);
+            // Просто отправляем и закрываем
+            tg.sendData(jsonData);
+            tg.close();
         }
         
         function downloadApp() {
