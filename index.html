@@ -1,4 +1,4 @@
-ф<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -1449,51 +1449,50 @@
             });
         }
         
-        // Глобальная переменная для хранения данных формы
-        let pendingData = null;
-        
         function sendData(data) {
-            // Проверяем, открыт ли Web App из Telegram
-            if (!tg || !tg.initData || tg.initData === '') {
+            // Проверяем Telegram
+            if (!tg) {
                 alert('❌ Откройте через Telegram!');
                 return;
             }
             
-            // Добавляем информацию о пользователе
-            data.user = tg.initDataUnsafe?.user || {};
+            showLoading(true);
             
-            // Сохраняем данные
-            pendingData = data;
+            // Кодируем данные в base64 для передачи через deep link
+            const jsonData = JSON.stringify(data);
+            const encodedData = btoa(unescape(encodeURIComponent(jsonData)));
             
-            // Закрываем модальное окно
-            closeModal();
+            // Формируем deep link для бота
+            // Формат: /start webapp_TYPE_DATA
+            const startParam = 'webapp_' + data.type + '_' + encodedData;
             
-            // Показываем MainButton для отправки
-            tg.MainButton.setText('📤 Отправить заявку');
-            tg.MainButton.color = '#f59e0b';
-            tg.MainButton.textColor = '#ffffff';
-            tg.MainButton.show();
-            
-            // Показываем уведомление
-            showToast('Нажмите кнопку внизу для отправки', 'success');
-        }
-        
-        // Обработчик MainButton
-        tg.MainButton.onClick(() => {
-            if (pendingData) {
-                const jsonData = JSON.stringify(pendingData);
-                console.log('📤 Отправка через MainButton:', jsonData);
-                
-                try {
-                    tg.sendData(jsonData);
-                } catch (error) {
-                    console.error('❌ Ошибка:', error);
-                    alert('Ошибка отправки: ' + error.message);
-                }
-                
-                pendingData = null;
+            // Если данные слишком длинные, используем короткий формат
+            let botLink;
+            if (startParam.length > 512) {
+                // Для длинных данных - просто тип и основные поля
+                const shortData = {
+                    t: data.type,
+                    c: data.callsign || '',
+                    l: data.lastname || '',
+                    p: data.phone || data.carNumber || data.tariff || ''
+                };
+                const shortEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(shortData))));
+                botLink = 'https://t.me/allosupport_bot?start=wa_' + shortEncoded;
+            } else {
+                botLink = 'https://t.me/allosupport_bot?start=wa_' + encodedData;
             }
-        });
+            
+            console.log('📤 Отправка через deep link');
+            
+            // Показываем сообщение и закрываем
+            showToast('✅ Переход к боту...', 'success');
+            
+            setTimeout(() => {
+                showLoading(false);
+                // Открываем бота с параметрами
+                window.location.href = botLink;
+            }, 500);
+        }
         
         function downloadApp() {
             tg.HapticFeedback.impactOccurred('medium');
