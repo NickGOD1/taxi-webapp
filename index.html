@@ -1458,40 +1458,49 @@
             
             showLoading(true);
             
-            // Кодируем данные в base64 для передачи через deep link
-            const jsonData = JSON.stringify(data);
+            // Используем короткий формат данных
+            const shortData = {
+                t: data.type,
+                c: data.callsign || '',
+                l: data.lastname || '',
+                p: data.phone || data.carNumber || data.tariff || '',
+                s: data.hasSeat ? '1' : '0'
+            };
+            
+            // Кодируем в base64
+            const jsonData = JSON.stringify(shortData);
             const encodedData = btoa(unescape(encodeURIComponent(jsonData)));
             
-            // Формируем deep link для бота
-            // Формат: /start webapp_TYPE_DATA
-            const startParam = 'webapp_' + data.type + '_' + encodedData;
+            // Формируем deep link
+            const startParam = 'wa_' + encodedData;
             
-            // Если данные слишком длинные, используем короткий формат
-            let botLink;
-            if (startParam.length > 512) {
-                // Для длинных данных - просто тип и основные поля
-                const shortData = {
-                    t: data.type,
-                    c: data.callsign || '',
-                    l: data.lastname || '',
-                    p: data.phone || data.carNumber || data.tariff || ''
-                };
-                const shortEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(shortData))));
-                botLink = 'https://t.me/allosupport_bot?start=wa_' + shortEncoded;
-            } else {
-                botLink = 'https://t.me/allosupport_bot?start=wa_' + encodedData;
-            }
+            console.log('📤 Данные:', shortData);
+            console.log('📤 Encoded:', startParam);
             
-            console.log('📤 Отправка через deep link');
-            
-            // Показываем сообщение и закрываем
-            showToast('✅ Переход к боту...', 'success');
+            // Показываем сообщение
+            showToast('✅ Отправка заявки...', 'success');
             
             setTimeout(() => {
                 showLoading(false);
-                // Открываем бота с параметрами
-                window.location.href = botLink;
-            }, 500);
+                
+                // Закрываем Web App и открываем бота с параметрами
+                // Используем специальный метод Telegram
+                try {
+                    // Метод 1: openTelegramLink (предпочтительный)
+                    if (tg.openTelegramLink) {
+                        tg.openTelegramLink('https://t.me/allosupport_bot?start=' + startParam);
+                    } else {
+                        // Метод 2: switchInlineQuery как fallback
+                        tg.close();
+                        window.open('https://t.me/allosupport_bot?start=' + startParam, '_blank');
+                    }
+                } catch (e) {
+                    console.error('Ошибка:', e);
+                    // Метод 3: копируем в буфер и просим пользователя
+                    const command = '/start ' + startParam;
+                    alert('Скопируйте и отправьте боту:\n\n' + command);
+                }
+            }, 300);
         }
         
         function downloadApp() {
